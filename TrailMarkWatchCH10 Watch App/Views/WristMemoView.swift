@@ -58,11 +58,7 @@ struct WristMemoView: View {
     
     private func finish() {
         guard let result = recorder.stop() else { return }
-        _ = try? model.media.add(
-            kind: .audio,
-            movingFileFrom: result.url,
-            duration: result.duration
-        )
+        model.saveAndSync(memoFrom: result.url, duration: result.duration)
     }
     
     private var elapsed: String {

@@ -8,6 +8,8 @@ struct ContentView: View {
         TabView {
             TodayDashboardView()
                 .tabItem { Label("Today", systemImage: "sun.max.fill") }
+            JourneyListView()
+                .tabItem { Label("Journeys", systemImage: "map.fill") }
             FieldJournalView()
                 .tabItem { Label("Journal", systemImage: "waveform") }
             RecoveryView()
@@ -16,6 +18,7 @@ struct ContentView: View {
         .task {
             await model.health.requestAuthorization()
             await model.health.refreshTodaysSummary()
+            model.mirrorTodayToWatch()
         }
     }
 }

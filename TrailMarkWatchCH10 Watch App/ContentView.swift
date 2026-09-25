@@ -12,7 +12,11 @@ struct ContentView: View {
                 
                 // Navigation Menu
                 Section {
-                    
+                    NavigationLink {
+                        WristMemoView()
+                    } label: {
+                        Label("Voice Memo", systemImage: "mic.fill")
+                    }
                 }
             }
         }

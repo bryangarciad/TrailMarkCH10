@@ -73,7 +73,16 @@ public final class MediaStore {
         persistIndex()
         return memo
     }
-    
+
+    /// Adds a memo whose file is already sitting in `mediaDirectory` — e.g. one that
+    /// just arrived from the watch. Re-registering the same ID replaces it.
+    public func register(_ memo: MediaMemo) {
+        memos.removeAll { $0.id == memo.id }
+        memos.append(memo)
+        memos.sort { $0.createdAt > $1.createdAt }
+        persistIndex()
+    }
+
     
     private func loadIndexData() {
         guard let data = try? Data(contentsOf: indexURL) else { return }

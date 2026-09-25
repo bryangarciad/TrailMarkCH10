@@ -46,7 +46,7 @@ struct FieldJournalView: View {
             }
             .sheet(isPresented: $showingVideoPicker) {
                 VideoCaptureView { url, duration in
-                    model.media.add(
+                    _ = try? model.media.add(
                         kind: .video,
                         movingFileFrom: url,
                         duration: duration,

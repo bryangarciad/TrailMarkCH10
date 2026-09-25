@@ -26,6 +26,7 @@ public final class JourneyStore {
         }
         
         journeys.sort { $0.startedAt > $1.startedAt }
+        persist()
     }
     
     public func delete(_ journey: Journey) {
