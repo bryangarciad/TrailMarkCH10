@@ -25,5 +25,24 @@ struct WristHomeView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .listRowBackground(Color.clear)
         }
+
+        // Latest state mirrored from the phone over applicationContext.
+        Section("iPhone Today") {
+            if let mirrored = model.connectivity.mirroredSummary {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(mirrored.stepsText) steps")
+                        .font(.headline)
+                    Text(mirrored.distanceText)
+                        .font(.footnote)
+                    Text("updated \(Text(mirrored.date, style: .relative)) ago")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                Text("Open TrailMark on your iPhone")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
     }
 }

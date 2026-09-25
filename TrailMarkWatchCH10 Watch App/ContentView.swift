@@ -17,6 +17,11 @@ struct ContentView: View {
                     } label: {
                         Label("Voice Memo", systemImage: "mic.fill")
                     }
+                    NavigationLink {
+                        QuickLogView()
+                    } label: {
+                        Label("Quick Log", systemImage: "figure.walk")
+                    }
                 }
             }
         }

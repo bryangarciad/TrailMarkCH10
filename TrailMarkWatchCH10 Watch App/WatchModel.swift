@@ -28,6 +28,12 @@ final class WatchModel {
         connectivity.transfer(memo: memo, fileURL: media.url(for: memo))
     }
 
+    /// Retries a memo whose transfer failed. Same memo ID and file name, so the phone
+    /// replaces its copy instead of adding a duplicate.
+    func resend(_ memo: MediaMemo) {
+        connectivity.transfer(memo: memo, fileURL: media.url(for: memo))
+    }
+
     /// Sends a finished activity to the phone as a queued record, so it arrives even
     /// if the phone is asleep in a pocket.
     func syncFinished(workout record: WorkoutRecord) {

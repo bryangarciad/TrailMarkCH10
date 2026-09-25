@@ -33,6 +33,16 @@ public final class ConnectivityManager: NSObject {
     /// Today's summary mirrored from the counterpart (shown on the wrist).
     public private(set) var mirroredSummary: ActivitySummary?
 
+    // Sender-side queue state, driven by the didFinish callbacks below.
+
+    /// Memos whose file transfer is queued or in flight.
+    public private(set) var pendingMemoIDs: Set<UUID> = []
+    /// Memos whose last transfer failed. The system drops failed transfers from its
+    /// queue, so these are neither pending nor delivered until they're resent.
+    public private(set) var failedMemoIDs: Set<UUID> = []
+    /// Queued userInfo records (workouts / journeys) not yet delivered.
+    public private(set) var pendingRecordCount = 0
+
     // App-supplied sinks. Each app wires these once at launch.
     public var onReceiveWorkout: ((WorkoutRecord) -> Void)?
     public var onReceiveJourney: ((Journey) -> Void)?
@@ -101,16 +111,27 @@ public final class ConnectivityManager: NSObject {
     }
 
     /// Transfer a media file with its memo metadata attached ("pocket sync").
+    /// Also used to resend a failed memo: the phone replaces by ID, so no duplicate.
     public func transfer(memo: MediaMemo, fileURL: URL) {
         #if canImport(WatchConnectivity)
+        // Never queued, so it would otherwise look delivered. Mark it failed so the
+        // user can resend once the counterpart is back.
+        guard canSend else {
+            failedMemoIDs.insert(memo.id)
+            lastError = "Counterpart not available — memo not sent"
+            return
+        }
         // Metadata must be property-list types, so the memo travels as a JSON string.
-        guard canSend,
-              let data = try? JSONEncoder().encode(memo),
+        guard let data = try? JSONEncoder().encode(memo),
               let json = String(data: data, encoding: .utf8) else { return }
         session?.transferFile(fileURL, metadata: [
             "type": PayloadType.memo.rawValue,
-            "memo": json
+            "memo": json,
+            // Plain ID so the sender can match the finished transfer back to the memo.
+            "memoID": memo.id.uuidString
         ])
+        failedMemoIDs.remove(memo.id)
+        pendingMemoIDs.insert(memo.id)
         #endif
     }
 
@@ -121,8 +142,18 @@ public final class ConnectivityManager: NSObject {
             "type": type.rawValue,
             "payload": data
         ])
+        pendingRecordCount += 1
         #endif
     }
+
+    #if canImport(WatchConnectivity)
+    /// Memo IDs of the file transfers still in the system queue.
+    nonisolated private static func outstandingMemoIDs(in session: WCSession) -> Set<UUID> {
+        Set(session.outstandingFileTransfers.compactMap {
+            ($0.file.metadata?["memoID"] as? String).flatMap(UUID.init(uuidString:))
+        })
+    }
+    #endif
 }
 
 #if canImport(WatchConnectivity)
@@ -137,9 +168,47 @@ extension ConnectivityManager: WCSessionDelegate {
         error: Error?
     ) {
         let message = error?.localizedDescription
+        // The queue survives relaunch, so rebuild the pending state from what the
+        // system still has outstanding rather than starting from empty.
+        let pendingMemos = Self.outstandingMemoIDs(in: session)
+        let pendingRecords = session.outstandingUserInfoTransfers.count
         Task { @MainActor in
             self.isActivated = (state == .activated)
             self.lastError = message
+            self.pendingMemoIDs = pendingMemos
+            self.pendingRecordCount = pendingRecords
+        }
+    }
+
+    // Sender side: a queued file finished (delivered or failed).
+    nonisolated public func session(
+        _ session: WCSession,
+        didFinish fileTransfer: WCSessionFileTransfer,
+        error: Error?
+    ) {
+        // WCSessionFileTransfer isn't Sendable: pull out the values first.
+        let memoID = (fileTransfer.file.metadata?["memoID"] as? String).flatMap(UUID.init(uuidString:))
+        let message = error?.localizedDescription
+        Task { @MainActor in
+            guard let memoID else { return }
+            self.pendingMemoIDs.remove(memoID)
+            if let message {
+                self.failedMemoIDs.insert(memoID)
+                self.lastError = message
+            }
+        }
+    }
+
+    // Sender side: a queued userInfo record finished (delivered or failed).
+    nonisolated public func session(
+        _ session: WCSession,
+        didFinish userInfoTransfer: WCSessionUserInfoTransfer,
+        error: Error?
+    ) {
+        let message = error?.localizedDescription
+        Task { @MainActor in
+            self.pendingRecordCount = max(0, self.pendingRecordCount - 1)
+            if let message { self.lastError = message }
         }
     }
 
