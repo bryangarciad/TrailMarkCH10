@@ -21,8 +21,11 @@ public final class HealthKitManager {
     public private(set) var sleep: SleepSummary = .empty
 
     public private(set) var energyTrend: [EnergyTrendPoint] = []
+    
+    public private(set) var liveVitals: LiveVitals = .empty
 
     private let store = HKHealthStore()
+    private var openLiveQueries: [HKQuery] = []
     
     public init() {
         if !HKHealthStore.isHealthDataAvailable() {
@@ -36,6 +39,7 @@ public final class HealthKitManager {
     private var distanceType: HKQuantityType { HKQuantityType(.distanceWalkingRunning) }
     private var energyType: HKQuantityType { HKQuantityType(.activeEnergyBurned) }
     private var sleepType: HKCategoryType { HKCategoryType(.sleepAnalysis) } // Awake, REM, Core, Deep
+    private var heartRateType: HKQuantityType { HKQuantityType(.heartRate) }
     
     private var readTypes: Set<HKObjectType> {
         [stepsType, distanceType, energyType, sleepType]
@@ -238,4 +242,63 @@ public final class HealthKitManager {
         try await builder.endCollection(at: record.end)
         _ = try await builder.finishWorkout()
     }
+    
+    // MARK: - Live Vitals
+    public func startLiveHeartUpdates() {
+        guard currentAuthStatus == .authorized, openLiveQueries.isEmpty else { return }
+        streamHeartRateData()
+        Task {
+            await refreshTodayVitals()
+        }
+    }
+    
+    public func refreshTodayVitals() async  {
+        let startofDay = Calendar.current.startOfDay(for: Date())
+        async let steps = sumQuantity(stepsType, unit: .count(), since: startofDay)
+        async let energy = sumQuantity(energyType, unit: .kilocalorie(), since: startofDay)
+        
+        liveVitals.steps = await steps
+        liveVitals.activeEnergyKcal = await energy
+    }
+    
+    private func streamHeartRateData() {
+        let predicate = HKQuery.predicateForSamples(
+            withStart: Calendar.current.startOfDay(for: Date()),
+            end: nil
+        )
+        
+        let dataHandler: @Sendable (
+            HKAnchoredObjectQuery,
+            [HKSample]?, // New or Update Data
+            [HKDeletedObject]?, // Deletion of data points
+            HKQueryAnchor?,
+            Error?
+        ) -> Void = { [weak self] _, samples, _,_,_ in
+            guard let latest = (samples as? [HKQuantitySample])?.last else { return }
+            let bpm = latest.quantity.doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
+            
+            Task { @MainActor in
+                self?.liveVitals.heartRateBPM = bpm
+            }
+        }
+        
+        let query = HKAnchoredObjectQuery(
+            type: heartRateType,
+            predicate: predicate,
+            anchor: nil,
+            limit: HKObjectQueryNoLimit,
+            resultsHandler: dataHandler
+        )
+        query.updateHandler = dataHandler
+        
+        store.execute(query)
+        
+        openLiveQueries.append(query)
+    }
+    
+    public func stopLiveQueries() {
+        openLiveQueries.forEach { store.stop($0) }
+        openLiveQueries.removeAll()
+    }
+    
 }

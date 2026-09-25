@@ -1,21 +1,26 @@
-//
-//  ContentView.swift
-//  TrailMarkWatchCH10 Watch App
-//
-//  Created by Ramses Garcia on 05/09/26.
-//
-
 import SwiftUI
+import TrailMarkCH10Core
 
 struct ContentView: View {
+    @Environment(WatchModel.self) private var model
+    
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        NavigationStack {
+            List {
+                // Main Screen
+                WristHomeView()
+                
+                // Navigation Menu
+                Section {
+                    
+                }
+            }
         }
-        .padding()
+        .navigationTitle("TrailMark WatchOS")
+        .task {
+            await model.health.requestAuthorization()
+            await model.health.refreshTodaysSummary()
+        }
     }
 }
 
