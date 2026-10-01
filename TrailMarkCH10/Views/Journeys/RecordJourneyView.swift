@@ -8,6 +8,8 @@ struct RecordJourneyView: View {
     
     @State private var title = ""
     @State private var startedAt: Date?
+    /// Created at start so the watch workout can be tagged with the journey it tracks.
+    @State private var journeyID = UUID()
     
     var body: some View {
         NavigationStack {
@@ -26,6 +28,10 @@ struct RecordJourneyView: View {
                     Text(distanceText).font(.system(.largeTitle, design: .rounded, weight: .bold))
                     Text("\(model.location.track.points.count) points recorded")
                         .font(.caption).foregroundStyle(.secondary)
+                    if model.location.isLocationBeingRecorded {
+                        Label("Workout tracking on Apple Watch", systemImage: "applewatch")
+                            .font(.caption).foregroundStyle(.green)
+                    }
                 }
                 
                 if !model.location.isLocationBeingRecorded {
@@ -55,6 +61,7 @@ struct RecordJourneyView: View {
                     Button("Cancel") {
                         if model.location.isLocationBeingRecorded {
                             _ = model.location.stopRecordingRoute()
+                            model.endWorkout(for: journeyID)
                         }
                         dismiss()
                     }
@@ -72,6 +79,7 @@ struct RecordJourneyView: View {
     private func start() {
         startedAt = Date()
         model.location.startRecordingRoute()
+        model.startWorkout(for: journeyID)
     }
     
     private func stop() {
@@ -84,6 +92,7 @@ struct RecordJourneyView: View {
             .map(\.id)
         
         let journey = Journey(
+            id: journeyID,
             title: title.isEmpty ? "Untitled Journey" : title,
             startedAt: start,
             endedAt: end,
@@ -92,9 +101,9 @@ struct RecordJourneyView: View {
         )
         
         model.journeyStore.add(journey)
-        // Sync data with watch os because the workout data will be held by the watch os
-        // but we need to create the connectivity module to sync with wOS
-        // TODO: hook sync with wOS
+        // The workout data lives on the watch: ending it there sends the finished
+        // record back, and AppModel attaches it to this journey by ID.
+        model.endWorkout(for: journeyID)
         
         dismiss()
     }

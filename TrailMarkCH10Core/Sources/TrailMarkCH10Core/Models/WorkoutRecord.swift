@@ -9,6 +9,9 @@ public struct WorkoutRecord: Identifiable, Hashable, Sendable, Codable {
     public var distanceMeters: Double
     /// Average heart rate over the session, if known.
     public var averageHeartRate: Double?
+    /// The phone journey this workout was recorded for, when it was started from
+    /// "Start Journey". Nil for workouts started on the watch on their own.
+    public var journeyID: UUID?
 
     public init(
         id: UUID = UUID(),
@@ -16,7 +19,8 @@ public struct WorkoutRecord: Identifiable, Hashable, Sendable, Codable {
         end: Date,
         activeEnergyKcal: Double = 0,
         distanceMeters: Double = 0,
-        averageHeartRate: Double? = nil
+        averageHeartRate: Double? = nil,
+        journeyID: UUID? = nil
     ) {
         self.id = id
         self.start = start
@@ -24,6 +28,7 @@ public struct WorkoutRecord: Identifiable, Hashable, Sendable, Codable {
         self.activeEnergyKcal = activeEnergyKcal
         self.distanceMeters = distanceMeters
         self.averageHeartRate = averageHeartRate
+        self.journeyID = journeyID
     }
 
     // MARK: - UI Display Helpers

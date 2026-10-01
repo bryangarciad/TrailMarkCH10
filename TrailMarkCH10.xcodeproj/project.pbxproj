@@ -453,6 +453,7 @@
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "TrailMark records voice memos on your wrist.";
 				INFOPLIST_KEY_NSMotionUsageDescription = "TrailMark reads motion data to detect your cadence and activity.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_FILE = "TrailMarkWatchCH10-Info.plist";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = ramsesg.TrailMarkCH10;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -491,6 +492,7 @@
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "TrailMark records voice memos on your wrist.";
 				INFOPLIST_KEY_NSMotionUsageDescription = "TrailMark reads motion data to detect your cadence and activity.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_FILE = "TrailMarkWatchCH10-Info.plist";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = ramsesg.TrailMarkCH10;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

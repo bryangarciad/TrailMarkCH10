@@ -10,14 +10,21 @@ final class WatchModel {
     let health = HealthKitManager()
     let media = MediaStore()
     let motion = MotionManager()
+    let workout = WorkoutSessionManager()
     let connectivity = ConnectivityManager.shared
 
     init() {
-        // Session 3.2 adds `WorkoutSessionManager`. Its finish hook plugs in here:
-        //
-        //     workout.onFinish = { [weak self] record in
-        //         self?.syncFinished(workout: record)
-        //     }
+        // A finished workout (started here or from the phone) goes back as a record.
+        workout.onFinish = { [weak self] record in
+            self?.syncFinished(workout: record)
+        }
+        // "Start Journey" / "Stop & Save" on the phone drive the workout on the wrist.
+        connectivity.onReceiveWorkoutControl = { [weak self] control in
+            switch control.command {
+            case .start: self?.workout.start(journeyID: control.journeyID)
+            case .end: self?.workout.end()
+            }
+        }
         connectivity.activate()
     }
 

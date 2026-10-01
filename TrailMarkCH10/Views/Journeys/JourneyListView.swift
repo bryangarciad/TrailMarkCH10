@@ -41,7 +41,7 @@ struct JourneyListView: View {
                 }
             }
             .sheet(isPresented: $showingRecorder) {
-                // RecordJourneyView
+                RecordJourneyView()
             }
         }
     }

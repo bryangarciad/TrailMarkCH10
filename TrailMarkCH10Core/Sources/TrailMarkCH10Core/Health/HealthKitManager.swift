@@ -192,6 +192,19 @@ public final class HealthKitManager {
 
     // MARK: - Writing a Workout
 
+    #if os(iOS)
+    /// Launches the watch app straight into a walking workout. watchOS hands the
+    /// configuration to the watch app's `handle(_ workoutConfiguration:)`, which
+    /// starts the `HKWorkoutSession` there — the phone can't run one itself.
+    public func startWatchWorkout() {
+        guard HKHealthStore.isHealthDataAvailable() else { return }
+        let configuration = HKWorkoutConfiguration()
+        configuration.activityType = .walking
+        configuration.locationType = .outdoor
+        store.startWatchApp(with: configuration) { _, _ in }
+    }
+    #endif
+
     /// Saves a finished activity to HealthKit as an `HKWorkout` via
     /// `HKWorkoutBuilder`. Once this returns, the workout is visible in the
     /// Health app — which is the easiest way to prove the write worked.
